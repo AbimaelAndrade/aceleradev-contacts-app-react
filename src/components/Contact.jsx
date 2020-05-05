@@ -1,19 +1,8 @@
 import React from "react";
 
+import { formatLocateDate } from "../services/date";
+
 class Contact extends React.Component {
-  constructor(props) {
-    super(props);
-    this.formatLocateDate = this.formatLocateDate.bind(this);
-  }
-
-  formatLocateDate(date) {
-    let formatDate = new Date(date);
-
-    let options = { year: "numeric", month: "2-digit", day: "2-digit" };
-
-    return formatDate.toLocaleDateString("pt-BR", options);
-  }
-
   render() {
     const {
       name,
@@ -40,7 +29,7 @@ class Contact extends React.Component {
           {country}
         </span>
         <span data-testid="contact-date" className="contact__data">
-          {this.formatLocateDate(admissionDate)}
+          {formatLocateDate(admissionDate)}
         </span>
         <span data-testid="contact-company" className="contact__data">
           {company}
