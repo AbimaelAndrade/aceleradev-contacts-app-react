@@ -1,68 +1,124 @@
-import React from 'react';
+import React from "react";
+import Lottie from "react-lottie";
 
-import { ReactComponent as LogoSvg } from "./assets/img/logo.svg";
+import Topbar from "./components/Topbar";
+import Filters from "./components/Filters";
+import Contacts from "./components/Contacts";
+import LoadMore from "./components/LoadMore";
 
-import './App.scss';
+import api from "./services/api";
+
+import loadingData from "./assets/lottie/loading.json";
+
+import "./App.scss";
+
+const animationOptions = {
+  loop: true,
+  autoPlay: true,
+  animationData: loadingData,
+};
 
 class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      contacts: [],
+      contactsFiltered: [],
+      isFiltered: false,
+      limit: 20,
+      page: 1,
+      hasMore: true,
+      sortBy: "name",
+      isLoading: false,
+    };
+
+    this.handleLoadMore = this.handleLoadMore.bind(this);
+    this.handleFilter = this.handleFilter.bind(this);
+    this.handleChandeSortBy = this.handleChandeSortBy.bind(this);
+    this.handleLoadContacts = this.handleLoadContacts.bind(this);
+  }
+
+  async componentDidMount() {
+    await this.handleLoadContacts();
+  }
+
+  async handleLoadContacts() {
+    const { contacts, page, limit, sortBy } = this.state;
+
+    this.setState({ isLoading: true });
+
+    const response = await api.get(
+      `/contacts?page=${page}&limit=${limit}&sortBy=${sortBy}`
+    );
+
+    const contactsOldLength = contacts.length;
+    const hasMore = response.data.length === limit;
+
+    this.setState({
+      contacts: response.data,
+      contactsOldLength,
+      hasMore,
+      isLoading: false,
+    });
+  }
+
+  handleLoadMore() {
+    this.setState(
+      (state) => ({
+        limit: state.limit + 20,
+      }),
+      this.handleLoadContacts
+    );
+  }
+
+  handleChandeSortBy(sortBy = "name") {
+    this.setState({ sortBy }, this.handleLoadContacts);
+  }
+
+  handleFilter(filterTerm) {
+    const { contacts, contactsFiltered } = this.state;
+    const newContactsFiltered = contacts.filter((contact) =>
+      contact.name.toLocaleLowerCase().includes(filterTerm)
+    );
+
+    const isEmpty = !!!newContactsFiltered.length;
+    const isFiltered = !!filterTerm;
+
+    this.setState({
+      contactsFiltered: isEmpty ? contactsFiltered : newContactsFiltered,
+      isFiltered,
+    });
+  }
+
   render() {
+    const {
+      contacts,
+      contactsFiltered,
+      isFiltered,
+      hasMore,
+      isLoading,
+    } = this.state;
+
     return (
-      <React.Fragment>
-        <header className="topbar">
-          <div className="container">
-            <a href="/" className="topbar__logo">
-              <LogoSvg alt="Logo Instagram" />
-            </a>
-          </div>
-        </header>
+      <>
+        <Topbar />
+        <Filters sortBy={this.handleChandeSortBy} filter={this.handleFilter} />
 
-        <div className="container">
-          <section className="filters">
-            <div className="filters__search">
-              <input type="text" className="filters__search__input" placeholder="Pesquisar" />
+        {isLoading ? (
+          <Lottie height={100} width={100} options={animationOptions} />
+        ) : (
+          <Contacts contacts={isFiltered ? contactsFiltered : contacts} />
+        )}
 
-              <button className="filters__search__icon">
-                <i className="fa fa-search"/>
-              </button>
-            </div>
-
-            <button className="filters__item is-selected">
-              Nome <i className="fas fa-sort-down" />
-            </button>
-
-            <button className="filters__item">
-              País <i className="fas fa-sort-down" />
-            </button>
-
-            <button className="filters__item">
-              Empresa <i className="fas fa-sort-down" />
-            </button>
-
-            <button className="filters__item">
-              Departamento <i className="fas fa-sort-down" />
-            </button>
-
-            <button className="filters__item">
-              Data de admissão <i className="fas fa-sort-down" />
-            </button>
-          </section>
-        </div>
-
-        <div className="container">
-          <section className="contacts">
-            <article className="contact">
-              <span className="contact__avatar" />
-              <span className="contact__data">Nome</span>
-              <span className="contact__data">Telefone</span>
-              <span className="contact__data">País</span>
-              <span className="contact__data">Admissão</span>
-              <span className="contact__data">Empresa</span>
-              <span className="contact__data">Departamento</span>
-            </article>
-          </section>
-        </div>
-      </React.Fragment>
-    )
+        {hasMore && (
+          <LoadMore
+            handleLoadMore={this.handleLoadMore}
+            isLoading={isLoading}
+          />
+        )}
+      </>
+    );
   }
 }
 
